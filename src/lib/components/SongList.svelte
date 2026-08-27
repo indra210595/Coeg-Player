@@ -1,13 +1,20 @@
 <script lang="ts">
   import { createVirtualizer } from '@tanstack/svelte-virtual';
   import { player, type Song } from '$lib/stores/player.svelte';
-  import { Play, Music2, Search, Clock, Volume2, Target, Heart } from 'lucide-svelte';
+  import { Play, Music2, Search, Clock, Volume2, Target, Heart, ListPlus } from 'lucide-svelte';
   import { untrack } from 'svelte';
+  import { invoke } from '@tauri-apps/api/core';
 
   let scrollContainer = $state<HTMLDivElement | null>(null);
   let searchQuery = $state('');
 
-  // Filter lagu instant
+  interface Playlist {
+    id: number;
+    name: string;
+  }
+  let availablePlaylists = $state<Playlist[]>([]);
+  let activeDropdownSongId = $state<number | null>(null);
+
   let filteredSongs = $derived.by(() => {
     if (!searchQuery.trim()) return player.songs;
     const q = searchQuery.toLowerCase().trim();
@@ -54,6 +61,26 @@
     }
   }
 
+  async function handleOpenPlaylistDropdown(songId: number) {
+    activeDropdownSongId = activeDropdownSongId === songId ? null : songId;
+    if (activeDropdownSongId) {
+      try {
+        availablePlaylists = await invoke<Playlist[]>('get_playlists');
+      } catch (err) {
+        console.error('Gagal ambil daftar playlist:', err);
+      }
+    }
+  }
+
+  async function addSongToPlaylist(playlistId: number, songId: number) {
+    try {
+      await invoke('add_song_to_playlist', { playlistId, songId });
+      activeDropdownSongId = null;
+    } catch (err) {
+      console.error('Gagal tambah lagu ke playlist:', err);
+    }
+  }
+
   function formatTime(seconds: number) {
     if (!seconds || isNaN(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
@@ -62,7 +89,7 @@
   }
 </script>
 
-<div class="h-full w-full flex flex-col bg-base-300 overflow-hidden">
+<div class="h-full w-full flex flex-col bg-base-300 overflow-hidden" onclick={() => activeDropdownSongId = null} role="presentation">
   
   <!-- STICKY HEADER SEARCH & LOCATE BAR -->
   <div class="p-3 bg-base-200/80 border-b border-base-100 flex items-center justify-between gap-4 flex-shrink-0 select-none">
@@ -103,7 +130,7 @@
     </div>
   </div>
 
-  <!-- COLUMN HEADER TABLE (12-COL GRID PAS) -->
+  <!-- COLUMN HEADER TABLE -->
   <div class="grid grid-cols-12 gap-2 px-4 py-2 bg-base-200/40 border-b border-base-100/60 text-[10px] font-mono font-bold text-base-content/40 uppercase tracking-wider select-none flex-shrink-0">
     <div class="col-span-1 text-center">#</div>
     <div class="col-span-6 md:col-span-4">Title / Artist</div>
@@ -130,11 +157,12 @@
         {#each $virtualizer.getVirtualItems() as row (row.key)}
           {@const song = filteredSongs[row.index]}
           {@const isCurrent = player.currentSong?.id === song.id}
+          {@const isDropdownActive = activeDropdownSongId === song.id}
           {@const trackIndex = (row.index + 1) < 10 ? `0${row.index + 1}` : `${row.index + 1}`}
           
           <div 
             class="absolute top-0 left-0 w-full grid grid-cols-12 gap-2 px-4 items-center border-b border-base-100/30 transition-all cursor-pointer group hover:bg-base-200/60 {isCurrent ? 'bg-primary/10 border-l-4 border-l-primary' : ''}"
-            style="height: {row.size}px; transform: translateY({row.start}px);"
+            style="height: {row.size}px; transform: translateY({row.start}px); z-index: {isDropdownActive ? 40 : 1};"
             onclick={() => player.play(song, filteredSongs)}
             role="button"
             tabindex="0"
@@ -175,8 +203,53 @@
               </span>
             </div>
 
-            <!-- COL 5: FAVORITE & DURATION -->
-            <div class="col-span-5 md:col-span-2 flex items-center justify-end gap-3 font-mono text-xs text-base-content/50">
+            <!-- COL 5: ACTIONS & DURATION -->
+            <div class="col-span-5 md:col-span-2 flex items-center justify-end gap-2 font-mono text-xs text-base-content/50 relative">
+              
+              <!-- DROPDOWN ADD TO PLAYLIST -->
+              <div class="relative">
+                <button 
+                  type="button"
+                  class="btn btn-ghost btn-xs btn-circle hover:bg-base-300 text-base-content/40 hover:text-primary transition-colors"
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    handleOpenPlaylistDropdown(song.id);
+                  }}
+                  title="Tambah ke Playlist"
+                >
+                  <ListPlus class="w-4 h-4" />
+                </button>
+
+                {#if isDropdownActive}
+                  <div 
+                    class="absolute right-0 top-7 z-50 bg-base-100 border border-base-100/80 rounded-2xl shadow-2xl p-2 w-48 flex flex-col gap-1 text-xs font-sans animate-in fade-in zoom-in-95 duration-150"
+                    onclick={(e) => e.stopPropagation()}
+                    role="menu"
+                    tabindex="-1"
+                    onkeydown={(e) => e.key === 'Escape' && (activeDropdownSongId = null)}
+                  >
+                    <span class="text-[9px] font-mono font-bold text-base-content/40 px-2 py-1 uppercase tracking-wider">
+                      Tambah ke Playlist
+                    </span>
+
+                    {#if availablePlaylists.length === 0}
+                      <span class="text-[11px] text-base-content/40 italic px-2 py-1">Belum ada playlist</span>
+                    {:else}
+                      {#each availablePlaylists as pl}
+                        <button 
+                          type="button"
+                          class="text-left px-2.5 py-1.5 rounded-xl hover:bg-primary/20 hover:text-primary font-semibold truncate transition-colors bg-base-200/50"
+                          onclick={() => addSongToPlaylist(pl.id, song.id)}
+                        >
+                          {pl.name}
+                        </button>
+                      {/each}
+                    {/if}
+                  </div>
+                {/if}
+              </div>
+
+              <!-- FAVORITE HEART BUTTON -->
               <button 
                 type="button"
                 class="btn btn-ghost btn-xs btn-circle hover:bg-base-300 transition-colors"

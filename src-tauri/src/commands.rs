@@ -1,5 +1,6 @@
 use crate::db::{AppState, Folder, Song};
 use crate::scanner::scan_single_folder;
+use crate::db::Playlist;
 use rusqlite::params;
 use tauri::State;
 
@@ -158,4 +159,128 @@ pub fn toggle_favorite(song_id: i64, is_favorite: bool, state: State<'_, AppStat
     )
     .map_err(|e| e.to_string())?;
     Ok(())
+}
+
+#[tauri::command]
+pub fn create_playlist(name: String, state: State<'_, AppState>) -> Result<Playlist, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT INTO playlists (name) VALUES (?1)",
+        params![name.trim()],
+    )
+    .map_err(|e| e.to_string())?;
+
+    let id = conn.last_insert_rowid();
+    Ok(Playlist {
+        id,
+        name: name.trim().to_string(),
+        created_at: "Baru saja".to_string(),
+        song_count: 0,
+    })
+}
+
+#[tauri::command]
+pub fn get_playlists(state: State<'_, AppState>) -> Result<Vec<Playlist>, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT p.id, p.name, p.created_at, COUNT(ps.song_id) as song_count 
+             FROM playlists p 
+             LEFT JOIN playlist_songs ps ON p.id = ps.playlist_id 
+             GROUP BY p.id 
+             ORDER BY p.id DESC",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let iter = stmt
+        .query_map([], |row| {
+            Ok(Playlist {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                created_at: row.get(2)?,
+                song_count: row.get(3)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+
+    let mut list = Vec::new();
+    for item in iter {
+        list.push(item.map_err(|e| e.to_string())?);
+    }
+    Ok(list)
+}
+
+#[tauri::command]
+pub fn delete_playlist(playlist_id: i64, state: State<'_, AppState>) -> Result<(), String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM playlists WHERE id = ?1", params![playlist_id])
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn add_song_to_playlist(playlist_id: i64, song_id: i64, state: State<'_, AppState>) -> Result<(), String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT OR IGNORE INTO playlist_songs (playlist_id, song_id) VALUES (?1, ?2)",
+        params![playlist_id, song_id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn remove_song_from_playlist(playlist_id: i64, song_id: i64, state: State<'_, AppState>) -> Result<(), String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "DELETE FROM playlist_songs WHERE playlist_id = ?1 AND song_id = ?2",
+        params![playlist_id, song_id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_playlist_songs(playlist_id: i64, state: State<'_, AppState>) -> Result<Vec<Song>, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT s.id, s.folder_id, s.title, s.artist, s.album, s.genre, s.duration, s.file_path, s.file_size, s.cover_path, s.format, s.bitrate, s.sample_rate, s.bit_depth, s.is_lossless, s.waveform, s.lyrics, s.is_favorite 
+             FROM songs s 
+             INNER JOIN playlist_songs ps ON s.id = ps.song_id 
+             WHERE ps.playlist_id = ?1 
+             ORDER BY ps.rowid ASC",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let song_iter = stmt
+        .query_map([playlist_id], |row| {
+            Ok(Song {
+                id: row.get(0)?,
+                folder_id: row.get(1)?,
+                title: row.get(2)?,
+                artist: row.get(3)?,
+                album: row.get(4)?,
+                genre: row.get(5)?,
+                duration: row.get(6)?,
+                file_path: row.get(7)?,
+                file_size: row.get(8)?,
+                cover_path: row.get(9)?,
+                format: row.get(10)?,
+                bitrate: row.get(11)?,
+                sample_rate: row.get(12)?,
+                bit_depth: row.get(13)?,
+                is_lossless: row.get(14)?,
+                waveform: row.get(15)?,
+                lyrics: row.get(16)?,
+                is_favorite: row.get(17)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+
+    let mut songs = Vec::new();
+    for song in song_iter {
+        songs.push(song.map_err(|e| e.to_string())?);
+    }
+    Ok(songs)
 }

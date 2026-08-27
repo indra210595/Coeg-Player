@@ -25,7 +25,13 @@ pub fn run() {
             commands::delete_folder,
             commands::clear_database,
             commands::get_cover_bytes,
-            commands::toggle_favorite
+            commands::toggle_favorite,
+            commands::create_playlist,
+            commands::get_playlists,
+            commands::delete_playlist,
+            commands::add_song_to_playlist,
+            commands::remove_song_from_playlist,
+            commands::get_playlist_songs
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

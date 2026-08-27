@@ -174,16 +174,27 @@
   
   <!-- TOP SECTION -->
   <div class="flex flex-col gap-4">
-    <!-- BRAND REBRANDING (COEG PLAYER) -->
-    <div class="flex items-center gap-2.5 px-2 py-1">
-      <div class="p-2 bg-primary/10 text-primary rounded-xl">
-        <Music class="w-5 h-5" />
+    <!-- BRAND HEADER SIDEBAR -->
+    <div class="flex items-center gap-3 p-4 border-b border-base-100 select-none">
+      <div class="relative flex items-center justify-center">
+        <!-- Glow Neon Effect -->
+        <div class="absolute inset-0 bg-primary/30 rounded-full blur-md"></div>
+        <img 
+          src="/coeg_player_logo.jpg" 
+          alt="Coeg Player Logo" 
+          class="w-9 h-9 object-contain relative z-10 drop-shadow-[0_0_10px_rgba(168,85,247,0.6)]" 
+        />
       </div>
-      <div class="hidden md:flex flex-col">
-        <span class="font-bold text-sm tracking-wide text-primary">COEG PLAYER</span>
-        <span class="text-[10px] text-base-content/50 tracking-widest font-mono">NEON EDITION</span>
+
+      <div class="flex flex-col">
+        <span class="font-black text-sm text-base-content tracking-wider leading-none">
+          COEG PLAYER
+        </span>
+        <span class="text-[9px] font-mono text-primary font-bold mt-1 tracking-widest">
+          NEON EDITION
+        </span>
       </div>
-    </div>
+</div>
 
     <!-- NAVIGATION MENU -->
     <nav class="flex flex-col gap-1">

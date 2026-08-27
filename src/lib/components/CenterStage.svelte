@@ -10,6 +10,7 @@
     import ArtistGridView from '$lib/components/ArtistGridView.svelte';
     import AlbumGridView from '$lib/components/AlbumGridView.svelte';
     import GenreGridView from '$lib/components/GenreGridView.svelte';
+    import PlaylistGridView from '$lib/components/PlaylistGridView.svelte';
     import { Disc3, ListFilter, AlignLeft, Music2, Heart, Disc, ListMusic, Mic2, Radio } from 'lucide-svelte';
 
     let activeTab = $state<'now-playing' | 'library'>('library');
@@ -266,11 +267,7 @@
         <GenreGridView />
 
       {:else if viewStore.current === 'playlists'}
-        <div class="flex-1 h-full flex flex-col items-center justify-center text-base-content/40 gap-3">
-          <ListMusic class="w-12 h-12 text-emerald-400" />
-          <h2 class="text-lg font-bold text-base-content">Custom Playlists</h2>
-          <p class="text-xs font-mono">Daftar playlist buatan lu bakal tersusun di sini.</p>
-        </div>
+        <PlaylistGridView />
       {/if}
     </div>
 

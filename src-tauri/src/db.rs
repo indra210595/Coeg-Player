@@ -34,6 +34,14 @@ pub struct Song {
     pub is_favorite: bool,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Playlist {
+    pub id: i64,
+    pub name: String,
+    pub created_at: String,
+    pub song_count: i64,
+}
+
 pub struct AppState {
     pub db: Arc<Mutex<Connection>>,
 }
@@ -98,5 +106,29 @@ pub fn init_db(app_handle: &tauri::AppHandle) -> Connection {
         [],
     )
     .unwrap();
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS playlists (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )",
+        [],
+    )
+    .unwrap();
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS playlist_songs (
+            playlist_id INTEGER NOT NULL,
+            song_id INTEGER NOT NULL,
+            position INTEGER DEFAULT 0,
+            PRIMARY KEY (playlist_id, song_id),
+            FOREIGN KEY (playlist_id) REFERENCES playlists (id) ON DELETE CASCADE,
+            FOREIGN KEY (song_id) REFERENCES songs (id) ON DELETE CASCADE
+        )",
+        [],
+    )
+    .unwrap();
+
     conn
 }
