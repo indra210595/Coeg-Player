@@ -47,7 +47,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZEOENGM0U0QTAxNzZDMUMKUldRY2JCZWc1UE9NL1FmUnpwdEdJeUVaUXpVbHNRVFB0OVV4dllLY3A3OVczbHdQZEZqT0tLUWkK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDhFQTk4MjkyMDhEQ0QxRjQKUldUMDBkd0lrb0twamdobTJlaWQyYkhlTGFUNnpMM3psVHc4aFE1R2h1eXNKSnpLcXhTZWlkNFkK",
       "endpoints": [
         "https://github.com/indra210595/Coeg-Player/releases/latest/download/latest.json"
       ]
