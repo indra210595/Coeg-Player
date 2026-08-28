@@ -1,6 +1,7 @@
 name: "Release Coeg Player"
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'v*' # Trigger aktif cuma pas push tag bertawalan 'v' (contoh: v1.0.0)
