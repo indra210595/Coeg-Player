@@ -180,7 +180,7 @@
         <!-- Glow Neon Effect -->
         <div class="absolute inset-0 bg-primary/30 rounded-full blur-md"></div>
         <img 
-          src="/coeg_player_logo.jpg" 
+          src="/coeg_player_icon.png" 
           alt="Coeg Player Logo" 
           class="w-9 h-9 object-contain relative z-10 drop-shadow-[0_0_10px_rgba(168,85,247,0.6)]" 
         />

@@ -1,0 +1,47 @@
+name: "Release Coeg Player"
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger aktif cuma pas push tag bertawalan 'v' (contoh: v1.0.0)
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'   # Runner Mac (M-Series / Intel)
+            args: ''
+          - platform: 'windows-latest' # Runner Windows
+            args: ''
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies (frontend)
+        run: npm install
+
+      - name: Build and Package Tauri App
+        uses: tauri-apps/tauri-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: 'Coeg Player v__VERSION__'
+          releaseBody: 'Installer resmi Coeg Player.'
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
