@@ -41,7 +41,7 @@ pub fn get_folders(state: State<'_, AppState>) -> Result<Vec<Folder>, String> {
 pub fn get_songs(state: State<'_, AppState>) -> Result<Vec<Song>, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn
-        .prepare("SELECT id, folder_id, title, artist, album, genre, duration, file_path, file_size, cover_path, format, bitrate, sample_rate, bit_depth, is_lossless, waveform, lyrics, is_favorite FROM songs ORDER BY title ASC")
+        .prepare("SELECT id, folder_id, title, artist, album, genre, duration, file_path, file_size, cover_path, format, bitrate, sample_rate, bit_depth, is_lossless, waveform, lyrics, is_favorite, replay_gain FROM songs ORDER BY title ASC")
         .map_err(|e| e.to_string())?;
 
     let song_iter = stmt
@@ -65,6 +65,7 @@ pub fn get_songs(state: State<'_, AppState>) -> Result<Vec<Song>, String> {
                 waveform: row.get(15)?,
                 lyrics: row.get(16)?,
                 is_favorite: row.get(17)?,
+                replay_gain: row.get(18)?,
             })
         })
         .map_err(|e| e.to_string())?;
@@ -245,7 +246,7 @@ pub fn get_playlist_songs(playlist_id: i64, state: State<'_, AppState>) -> Resul
     let conn = state.db.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn
         .prepare(
-            "SELECT s.id, s.folder_id, s.title, s.artist, s.album, s.genre, s.duration, s.file_path, s.file_size, s.cover_path, s.format, s.bitrate, s.sample_rate, s.bit_depth, s.is_lossless, s.waveform, s.lyrics, s.is_favorite 
+            "SELECT s.id, s.folder_id, s.title, s.artist, s.album, s.genre, s.duration, s.file_path, s.file_size, s.cover_path, s.format, s.bitrate, s.sample_rate, s.bit_depth, s.is_lossless, s.waveform, s.lyrics, s.is_favorite, s.replay_gain 
              FROM songs s 
              INNER JOIN playlist_songs ps ON s.id = ps.song_id 
              WHERE ps.playlist_id = ?1 
@@ -274,6 +275,7 @@ pub fn get_playlist_songs(playlist_id: i64, state: State<'_, AppState>) -> Resul
                 waveform: row.get(15)?,
                 lyrics: row.get(16)?,
                 is_favorite: row.get(17)?,
+                replay_gain: row.get(18)?,
             })
         })
         .map_err(|e| e.to_string())?;

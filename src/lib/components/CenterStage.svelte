@@ -30,7 +30,14 @@
     // 1. REF & LOGIC LIVE FFT SPECTRUM VISUALIZER
     let barContainer = $state<HTMLDivElement | null>(null);
     let animFrameId: number;
-    let sensitivity = $state(1.4);
+    
+    const getInitialSensitivity = (): number => {
+      if (typeof window === 'undefined') return 0.9;
+      const saved = localStorage.getItem('coeg_fft_sensitivity');
+      return saved !== null ? parseFloat(saved) : 0.9;
+    };
+
+    let sensitivity = $state(getInitialSensitivity());
 
     function renderFftSpectrum() {
         if (player.analyser && barContainer && player.isPlaying) {
@@ -128,6 +135,11 @@
         activeTab = 'library';
       });
     });
+    $effect(() => {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('coeg_fft_sensitivity', sensitivity.toString());
+      }
+    });
 </script>
 
 <main class="flex-1 flex flex-col bg-base-300 overflow-hidden relative">
@@ -204,6 +216,21 @@
                 <span class="w-1.5 h-1.5 rounded-full {player.isPlaying ? 'bg-success animate-pulse' : 'bg-base-content/30'}"></span>
                 FFT (32 Bins)
               </span>
+
+              <div class="flex items-center gap-2 bg-base-100/60 px-2 py-1 rounded-lg border border-base-100">
+                <span class="text-[9px] font-mono text-base-content/60 font-semibold">
+                  SENS: {sensitivity.toFixed(1)}x
+                </span>
+                <input 
+                  type="range" 
+                  min="0.5" 
+                  max="3.0" 
+                  step="0.1" 
+                  bind:value={sensitivity} 
+                  class="range range-xs range-primary w-20 h-1"
+                  title="Atur sensitivitas ayunan visualizer"
+                />
+              </div>
             </div>
 
             <div bind:this={barContainer} class="h-20 flex items-end justify-between gap-[3px] pt-2 px-1">

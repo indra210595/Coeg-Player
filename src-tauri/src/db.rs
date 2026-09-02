@@ -32,6 +32,7 @@ pub struct Song {
     pub waveform: Option<String>,
     pub lyrics: Option<String>,
     pub is_favorite: bool,
+    pub replay_gain: Option<f32>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -65,7 +66,7 @@ pub fn init_db(app_handle: &tauri::AppHandle) -> Connection {
     )
     .expect("Gagal konfigurasi PRAGMA SQLite");
 
-    let needs_reset = conn.prepare("SELECT is_favorite FROM songs LIMIT 1").is_err();
+    let needs_reset = conn.prepare("SELECT replay_gain FROM songs LIMIT 1").is_err();
     if needs_reset {
         let _ = conn.execute("DROP TABLE IF EXISTS songs", []);
         let _ = conn.execute("DROP TABLE IF EXISTS folders", []);
@@ -101,6 +102,7 @@ pub fn init_db(app_handle: &tauri::AppHandle) -> Connection {
             waveform TEXT,
             lyrics TEXT,
             is_favorite BOOLEAN DEFAULT 0,
+            replay_gain REAL DEFAULT 0.0,
             FOREIGN KEY (folder_id) REFERENCES folders (id) ON DELETE CASCADE
         )",
         [],

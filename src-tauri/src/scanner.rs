@@ -182,6 +182,7 @@ pub fn scan_single_folder(
                 let bit_depth = 16i64;
                 let waveform_data = generate_waveform(&file_path_str);
                 let lyrics_data;
+                let mut replay_gain: Option<f32> = None;
 
                 let probed_file = Probe::open(path)
                     .ok()
@@ -224,13 +225,19 @@ pub fn scan_single_folder(
                                 }
                             }
                         }
+
+                        // replay gain
+                        if let Some(gain_str) = tag.get_string(&lofty::tag::ItemKey::ReplayGainTrackGain) {
+                            let clean_str = gain_str.replace(" dB", "");
+                            replay_gain = clean_str.parse::<f32>().ok();
+                        }
                     }
                 } else {
                     lyrics_data = extract_lyrics(path, None);
                 }
 
                 new_songs.push((
-                    title, artist, album, genre, duration, file_path_str, file_size, cover_path, format_str, bitrate, sample_rate, bit_depth, is_lossless, waveform_data, lyrics_data,
+                    title, artist, album, genre, duration, file_path_str, file_size, cover_path, format_str, bitrate, sample_rate, bit_depth, is_lossless, waveform_data, lyrics_data, replay_gain,
                 ));
             }
         }
@@ -238,14 +245,14 @@ pub fn scan_single_folder(
         if !new_songs.is_empty() {
             if let Ok(mut conn) = db_arc.lock() {
                 if let Ok(tx) = conn.transaction() {
-                    for (title, artist, album, genre, duration, file_path, file_size, cover_path, format_str, bitrate, sample_rate, bit_depth, is_lossless, waveform_data, lyrics_data) in &new_songs {
+                    for (title, artist, album, genre, duration, file_path, file_size, cover_path, format_str, bitrate, sample_rate, bit_depth, is_lossless, waveform_data, lyrics_data, replay_gain) in &new_songs {
                         let _ = tx.execute(
                             "INSERT INTO songs 
-                            (folder_id, title, artist, album, genre, duration, file_path, file_size, cover_path, format, bitrate, sample_rate, bit_depth, is_lossless, waveform, lyrics) 
-                            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
+                            (folder_id, title, artist, album, genre, duration, file_path, file_size, cover_path, format, bitrate, sample_rate, bit_depth, is_lossless, waveform, lyrics, replay_gain) 
+                            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)
                             ON CONFLICT(file_path) DO UPDATE SET 
                                 duration = excluded.duration",
-                            params![folder_id, title, artist, album, genre, duration, file_path, file_size, cover_path, format_str, bitrate, sample_rate, bit_depth, is_lossless, waveform_data, lyrics_data],
+                            params![folder_id, title, artist, album, genre, duration, file_path, file_size, cover_path, format_str, bitrate, sample_rate, bit_depth, is_lossless, waveform_data, lyrics_data, replay_gain],
                         );
                     }
                     let _ = tx.commit();

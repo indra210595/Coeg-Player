@@ -19,6 +19,7 @@ export interface Song {
   waveform?: string | null;
   lyrics?: string | null;
   is_favorite?: boolean;
+  replay_gain?: number | null;
 }
 
 export interface AiQueueItem {
@@ -75,6 +76,7 @@ class PlayerStore {
   
   private audio = new Audio();
   public analyser: AnalyserNode | null = null;
+  private gainNode: GainNode | null = null;
   private audioCtx: AudioContext | null = null;
   private isAudioSourceConnected = false;
 
@@ -135,10 +137,15 @@ class PlayerStore {
       }
 
       if (!this.isAudioSourceConnected && this.analyser && this.audioCtx) {
+        this.gainNode = this.audioCtx.createGain();
         const source = this.audioCtx.createMediaElementSource(this.audio);
         source.connect(this.analyser);
-        this.analyser.connect(this.audioCtx.destination);
+        this.analyser.connect(this.gainNode);
+        this.gainNode.connect(this.audioCtx.destination);
         this.isAudioSourceConnected = true;
+        this.audio.volume = 1;
+        this.audio.muted = false;
+        this.applyNormalizedVolume();
       }
     } catch (e) {
       console.warn('Web Audio API init warning:', e);
@@ -319,6 +326,7 @@ class PlayerStore {
       this.currentSong = song;
       const safePath = song.file_path.replace(/\\/g, '/');
       this.audio.src = convertFileSrc(safePath);
+      this.applyNormalizedVolume();
 
       if (typeof window !== 'undefined') {
         localStorage.setItem('coeg_last_song_id', song.id.toString());
@@ -431,7 +439,7 @@ class PlayerStore {
 
   setVolume(val: number) {
     this.volume = val;
-    this.audio.volume = val;
+    this.applyNormalizedVolume();
     if (val > 0) this.isMuted = false;
 
     if (typeof window !== 'undefined') {
@@ -442,7 +450,7 @@ class PlayerStore {
 
   toggleMute() {
     this.isMuted = !this.isMuted;
-    this.audio.muted = this.isMuted;
+    this.applyNormalizedVolume();
 
     if (typeof window !== 'undefined') {
       localStorage.setItem('coeg_muted', this.isMuted.toString());
@@ -519,6 +527,27 @@ class PlayerStore {
 
         this.generateAiQueue();
       }
+    }
+  }
+
+  private applyNormalizedVolume() {
+    let targetVolume = this.volume;
+
+    if (this.isMuted) {
+      targetVolume = 0;
+    } else {
+      const gainDb = this.currentSong?.replay_gain;
+
+      if (gainDb != null && !isNaN(gainDb)) {
+        const multiplier = Math.pow(10, gainDb / 20);
+        targetVolume = Math.min(1.0, Math.max(0.0, this.volume * multiplier));
+      }
+    }
+
+    if (this.gainNode) {
+      this.gainNode.gain.value = targetVolume;
+    } else {
+      this.audio.volume = targetVolume;
     }
   }
 }
